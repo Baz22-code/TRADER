@@ -1,9 +1,0 @@
-{
-  "name": "trading-journal-2026",
-  "version": "1.0.0",
-  "description": "Trading Journal 2026 - Track your trades with Excel integration",
-  "private": true,
-  "scripts": {
-    "dev": "echo 'Open public/index.html in your browser'"
-  }
-}
