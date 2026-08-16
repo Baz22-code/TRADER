@@ -1,0 +1,1315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trading Journal 2026</title>
+    <script>
+        // Load XLSX asynchronously so it doesn't block the page
+        (function() {
+            var s = document.createElement('script');
+            s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+            s.onload = function() { window._xlsxLoaded = true; };
+            s.onerror = function() {
+                var s2 = document.createElement('script');
+                s2.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+                s2.onload = function() { window._xlsxLoaded = true; };
+                document.head.appendChild(s2);
+            };
+            document.head.appendChild(s);
+        })();
+    </script>
+    <!-- Microsoft Authentication Library (MSAL) for Excel Online integration -->
+    <script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --surface: #1a1d27;
+            --surface2: #242836;
+            --border: #2e3348;
+            --text: #e4e6f0;
+            --text2: #8b8fa3;
+            --accent: #6c5ce7;
+            --accent-dim: rgba(108, 92, 231, 0.15);
+            --green: #00b894;
+            --green-dim: rgba(0, 184, 148, 0.15);
+            --red: #e74c3c;
+            --red-dim: rgba(231, 76, 60, 0.15);
+            --blue: #0984e3;
+            --blue-dim: rgba(9, 132, 227, 0.15);
+            --orange: #f39c12;
+            --orange-dim: rgba(243, 156, 18, 0.15);
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        /* Header */
+        .header {
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .header-left { display: flex; align-items: center; gap: 12px; }
+        .header-left .logo {
+            width: 32px; height: 32px;
+            background: var(--accent);
+            border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 16px; color: #fff;
+        }
+        .header h1 { font-size: 18px; font-weight: 600; }
+        .header h1 span { color: var(--accent); }
+        .header-actions { display: flex; gap: 8px; }
+
+        /* Buttons */
+        .btn {
+            padding: 7px 14px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface2);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 13px;
+            font-family: inherit;
+            transition: all 0.15s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover { border-color: var(--accent); background: var(--surface); }
+        .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        .btn-primary:hover { opacity: 0.85; }
+        .btn-sm { padding: 4px 10px; font-size: 12px; }
+        .btn-danger { border-color: var(--red); color: var(--red); }
+        .btn-danger:hover { background: var(--red); color: #fff; }
+        .btn-ghost { border-color: transparent; background: transparent; color: var(--text2); }
+        .btn-ghost:hover { color: var(--text); border-color: var(--border); }
+        .btn-green { background: var(--green); border-color: var(--green); color: #fff; }
+        .btn-green:hover { opacity: 0.85; }
+
+        .container { max-width: 1440px; margin: 0 auto; padding: 20px; }
+
+        /* Import banner */
+        .import-banner {
+            background: var(--surface);
+            border: 1px dashed var(--accent);
+            border-radius: var(--radius);
+            padding: 32px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .import-banner p { color: var(--text2); margin: 10px 0; font-size: 14px; }
+        .import-banner h2 { font-size: 16px; }
+
+        /* Drag & drop */
+        .drop-zone {
+            border: 2px dashed var(--border);
+            border-radius: var(--radius);
+            padding: 40px;
+            text-align: center;
+            margin: 16px 0;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .drop-zone:hover, .drop-zone.dragover {
+            border-color: var(--accent);
+            background: var(--accent-dim);
+        }
+        .drop-zone p { color: var(--text2); font-size: 13px; margin-top: 8px; }
+        .drop-zone .icon { font-size: 32px; }
+
+        /* Stats */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 2px;
+        }
+        .stat-card.accent::after { background: var(--accent); }
+        .stat-card.green::after { background: var(--green); }
+        .stat-card.blue::after { background: var(--blue); }
+        .stat-card.orange::after { background: var(--orange); }
+        .stat-card.red::after { background: var(--red); }
+        .stat-card .label { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.8px; font-weight: 500; }
+        .stat-card .value { font-size: 26px; font-weight: 700; margin-top: 4px; }
+        .stat-card .sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+        /* Filters */
+        .filters {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .filters select, .filters input[type="text"] {
+            padding: 7px 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+        }
+        .filters select:focus, .filters input:focus { outline: none; border-color: var(--accent); }
+        .filter-count { font-size: 12px; color: var(--text2); margin-left: auto; }
+
+        /* Table */
+        .table-wrapper {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            overflow: hidden;
+            box-shadow: var(--shadow);
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead th {
+            background: var(--surface2);
+            padding: 10px 12px;
+            text-align: left;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            color: var(--text2);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+            position: sticky;
+            top: 0;
+        }
+        tbody td {
+            padding: 9px 12px;
+            font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tbody tr { transition: background 0.1s; }
+        tbody tr:hover { background: rgba(108, 92, 231, 0.04); }
+        tbody tr.week-row { background: rgba(108, 92, 231, 0.06); }
+        tbody tr.week-row td { font-weight: 600; color: var(--accent); }
+
+        .pair-cell { font-weight: 600; letter-spacing: 0.3px; }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+        .badge-up { background: var(--green-dim); color: var(--green); }
+        .badge-down { background: var(--red-dim); color: var(--red); }
+        .badge-a { background: var(--accent-dim); color: var(--accent); }
+        .badge-closed { background: var(--blue-dim); color: var(--blue); }
+        .badge-open { background: var(--orange-dim); color: var(--orange); }
+        .badge-tf { background: var(--surface2); color: var(--text2); font-weight: 500; }
+
+        .actions-cell { display: flex; gap: 4px; }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.65);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            width: 580px;
+            max-width: 95vw;
+            max-height: 90vh;
+            overflow-y: auto;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+        .modal h2 { font-size: 17px; margin-bottom: 20px; font-weight: 600; }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { font-size: 12px; color: var(--text2); font-weight: 500; }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            background: var(--bg);
+            color: var(--text);
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.15s;
+        }
+        .form-group textarea { resize: vertical; min-height: 60px; }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text2);
+        }
+        .empty-state p { font-size: 14px; margin-top: 8px; }
+
+        .notes-cell {
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            cursor: default;
+        }
+        .notes-cell:hover { white-space: normal; overflow: visible; position: relative; z-index: 10; background: var(--surface); }
+
+        /* Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 12px 20px;
+            font-size: 13px;
+            color: var(--text);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+            transform: translateY(80px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 300;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.success { border-left: 3px solid var(--green); }
+        .toast.error { border-left: 3px solid var(--red); }
+        .toast.info { border-left: 3px solid var(--blue); }
+
+        /* File input hidden */
+        #fileInput { display: none; }
+
+        @media (max-width: 900px) {
+            .stats-row { grid-template-columns: repeat(2, 1fr); }
+            .stats-row .stat-card:last-child { grid-column: 1 / -1; }
+        }
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .table-wrapper { overflow-x: auto; }
+            .header { padding: 12px 16px; }
+            .container { padding: 12px; }
+            .header h1 { font-size: 15px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <div class="logo">T</div>
+        <h1><span>Trading</span> Journal 2026</h1>
+    </div>
+    <div class="header-actions">
+        <button class="btn btn-ghost" id="btnExcelOnline" onclick="toggleExcelOnline()" title="Connect to Excel Online">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M8 3v18"/><path d="M16 3v18"/><path d="M3 8h18"/><path d="M3 16h18"/></svg>
+            <span id="excelOnlineLabel">Connect Excel</span>
+        </button>
+        <button class="btn btn-ghost" onclick="importExcel()" title="Import Excel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Import
+        </button>
+        <button class="btn btn-ghost" onclick="exportExcel()" title="Export Excel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Export
+        </button>
+        <button class="btn btn-primary" onclick="openModal()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            New Trade
+        </button>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Import banner (shown when no data) -->
+    <div class="import-banner" id="importBanner" style="display:none;">
+        <h2>Welcome to your Trading Journal</h2>
+        <p>Import your existing Excel file or start fresh by adding a new trade.</p>
+        <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+            <div class="icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><polyline points="9 15 12 12 15 15"/></svg>
+            </div>
+            <p>Drop your Excel file here or click to browse</p>
+        </div>
+        <button class="btn btn-green" onclick="loadSampleData()">Or load sample data</button>
+    </div>
+    <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFile(event)">
+
+    <!-- Main content -->
+    <div id="mainContent" style="display:none;">
+        <div class="stats-row" id="statsRow"></div>
+
+        <div class="filters">
+            <select id="filterPair" onchange="applyFilters()">
+                <option value="">All Pairs</option>
+            </select>
+            <select id="filterDirection" onchange="applyFilters()">
+                <option value="">All Directions</option>
+                <option value="UP">UP</option>
+                <option value="DOWN">DOWN</option>
+            </select>
+            <select id="filterStatus" onchange="applyFilters()">
+                <option value="">All Status</option>
+                <option value="Closed">Closed</option>
+                <option value="open">Open</option>
+            </select>
+            <select id="filterWeek" onchange="applyFilters()">
+                <option value="">All Weeks</option>
+            </select>
+            <select id="filterSetup" onchange="applyFilters()">
+                <option value="">All Setups</option>
+            </select>
+            <input type="text" id="searchBox" placeholder="Search trades..." oninput="applyFilters()">
+            <span class="filter-count" id="filterCount"></span>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Week</th>
+                        <th>Date</th>
+                        <th>Pair</th>
+                        <th>Setup</th>
+                        <th>Direction</th>
+                        <th>TF</th>
+                        <th>Lot</th>
+                        <th>Status</th>
+                        <th>Entry Grade</th>
+                        <th>Entry Emotion</th>
+                        <th>Exit Emotion</th>
+                        <th>Notes</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tradesBody"></tbody>
+            </table>
+            <div class="empty-state" id="emptyState" style="display:none;">
+                <p>No trades match your filters.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="tradeModal">
+    <div class="modal">
+        <h2 id="modalTitle">New Trade</h2>
+        <form id="tradeForm" onsubmit="saveTrade(event)">
+            <input type="hidden" id="editId" value="">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>Week</label>
+                    <input type="text" id="fWeek" placeholder="e.g. Week 1">
+                </div>
+                <div class="form-group">
+                    <label>Date</label>
+                    <input type="text" id="fDate" placeholder="DD/MM/YYYY">
+                </div>
+                <div class="form-group">
+                    <label>Pair</label>
+                    <input type="text" id="fPair" placeholder="e.g. EURUSD" list="pairList">
+                    <datalist id="pairList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>Setup</label>
+                    <input type="text" id="fSetup" placeholder="e.g. LIQUIDITY" list="setupList">
+                    <datalist id="setupList"></datalist>
+                </div>
+                <div class="form-group">
+                    <label>Direction</label>
+                    <select id="fDirection">
+                        <option value="UP">UP</option>
+                        <option value="DOWN">DOWN</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Time Frame</label>
+                    <input type="text" id="fTimeFrame" placeholder="e.g. 4H, 15">
+                </div>
+                <div class="form-group">
+                    <label>Lot Size</label>
+                    <input type="text" id="fLot" placeholder="e.g. 0.01">
+                </div>
+                <div class="form-group">
+                    <label>Status</label>
+                    <select id="fStatus">
+                        <option value="">Open</option>
+                        <option value="Closed">Closed</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Entry Setup Grade</label>
+                    <select id="fEntrySetup">
+                        <option value="">--</option>
+                        <option value="A+">A+</option>
+                        <option value="A">A</option>
+                        <option value="B">B</option>
+                        <option value="C">C</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Entry Emotion</label>
+                    <input type="text" id="fEntryEmotion" placeholder="How you felt entering">
+                </div>
+                <div class="form-group full">
+                    <label>Exit Emotion</label>
+                    <input type="text" id="fExitEmotion" placeholder="How you felt exiting">
+                </div>
+                <div class="form-group full">
+                    <label>Notes</label>
+                    <textarea id="fNotes" placeholder="Trade notes, lessons learned..."></textarea>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Trade</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ==================== DATA LAYER ====================
+    const FIELDS = ["Week","Date","Pair","Setup","Direction","Time Frame","Lot","Status","Entry Setup","Entry Emotion","Exit Emotion","Notes"];
+    const STORAGE_KEY = "tradingJournal2026";
+
+    let trades = [];
+    let msalInstance = null;
+    let currentUser = null;
+    let excelFileId = null;
+
+    function loadData() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (saved) {
+            trades = JSON.parse(saved);
+        } else {
+            trades = [];
+        }
+    }
+
+    function saveData() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+    }
+
+    function showView() {
+        if (trades.length === 0) {
+            document.getElementById('importBanner').style.display = 'block';
+            document.getElementById('mainContent').style.display = 'none';
+        } else {
+            document.getElementById('importBanner').style.display = 'none';
+            document.getElementById('mainContent').style.display = 'block';
+            renderTable();
+            updateStats();
+            updateFilters();
+        }
+    }
+
+    // ==================== IMPORT / EXPORT ====================
+    function isXLSXAvailable() {
+        if (typeof XLSX === 'undefined') {
+            showToast('Excel library not loaded. Check your internet connection and refresh.', 'error');
+            return false;
+        }
+        return true;
+    }
+
+    function importExcel() {
+        document.getElementById('fileInput').click();
+    }
+
+    function handleFile(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        // Check if it's a CSV file - we can parse it without XLSX
+        const isCSV = file.name.endsWith('.csv');
+
+        if (!isCSV && !isXLSXAvailable()) {
+            e.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(evt) {
+            try {
+                let json;
+                if (isCSV) {
+                    // Parse CSV manually
+                    const text = evt.target.result;
+                    const lines = text.split('\n').filter(l => l.trim());
+                    if (lines.length < 2) { showToast('File is empty', 'error'); return; }
+                    const headers = parseCSVLine(lines[0]);
+                    json = [];
+                    for (let i = 1; i < lines.length; i++) {
+                        const vals = parseCSVLine(lines[i]);
+                        const row = {};
+                        headers.forEach((h, idx) => { row[h.trim()] = (vals[idx] || '').trim(); });
+                        json.push(row);
+                    }
+                } else {
+                    const data = new Uint8Array(evt.target.result);
+                    const wb = XLSX.read(data, { type: 'array' });
+                    const ws = wb.Sheets[wb.SheetNames[0]];
+                    json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+                }
+
+                if (!json || json.length === 0) { showToast('No data found in file', 'error'); return; }
+
+                // Map column names to our fields
+                const colMap = {};
+                const keys = Object.keys(json[0]);
+                FIELDS.forEach(f => {
+                    const match = keys.find(k => k.trim() === f) ||
+                                  keys.find(k => k.trim().toLowerCase() === f.toLowerCase());
+                    if (match) colMap[f] = match;
+                });
+
+                trades = json
+                    .filter(row => {
+                        const dateKey = colMap['Date'] || 'Date';
+                        const val = String(row[dateKey] || '').trim();
+                        return val && val !== '--' && val !== '';
+                    })
+                    .map(row => {
+                        const t = {};
+                        FIELDS.forEach(f => {
+                            const key = colMap[f] || f;
+                            let val = row[key];
+                            if (val === undefined || val === null) val = '';
+                            t[f] = String(val).trim();
+                        });
+                        return t;
+                    });
+
+                saveData();
+                showView();
+                showToast('Imported ' + trades.length + ' trades', 'success');
+            } catch (err) {
+                showToast('Failed to read file: ' + err.message, 'error');
+            }
+        };
+
+        if (isCSV) {
+            reader.readAsText(file);
+        } else {
+            reader.readAsArrayBuffer(file);
+        }
+        e.target.value = '';
+    }
+
+    // Simple CSV line parser (handles quoted fields)
+    function parseCSVLine(line) {
+        const result = [];
+        let current = '';
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const ch = line[i];
+            if (ch === '"') {
+                if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+                else { inQuotes = !inQuotes; }
+            } else if (ch === ',' && !inQuotes) {
+                result.push(current);
+                current = '';
+            } else {
+                current += ch;
+            }
+        }
+        result.push(current);
+        return result;
+    }
+
+    function exportExcel() {
+        if (trades.length === 0) {
+            showToast('No trades to export', 'error');
+            return;
+        }
+        if (!isXLSXAvailable()) return;
+        const ws = XLSX.utils.json_to_sheet(trades.map(t => {
+            const row = {};
+            FIELDS.forEach(f => row[f] = t[f] || '');
+            return row;
+        }));
+        ws['!cols'] = [
+            {wch:10},{wch:12},{wch:10},{wch:12},{wch:10},{wch:10},
+            {wch:8},{wch:10},{wch:12},{wch:20},{wch:20},{wch:30}
+        ];
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Trades");
+        XLSX.writeFile(wb, "Trading Journal.xlsx");
+        showToast('Excel file downloaded', 'success');
+    }
+
+    // Drag & drop
+    const dropZone = document.getElementById('dropZone');
+    if (dropZone) {
+        ['dragenter','dragover'].forEach(ev => {
+            dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        });
+        ['dragleave','drop'].forEach(ev => {
+            dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('dragover'); });
+        });
+        dropZone.addEventListener('drop', e => {
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                const fakeEvent = { target: { files: [file], value: '' } };
+                handleFile(fakeEvent);
+            }
+        });
+    }
+
+    // ==================== SAMPLE DATA ====================
+    function loadSampleData() {
+        trades = [
+            {Week:"Week 1",Date:"01/06/2026",Pair:"EURUSD",Setup:"LIQUIDITY",Direction:"UP","Time Frame":"15",Lot:"0.05",Status:"","Entry Setup":"OK","Entry Emotion":"Focus on trade execution","Exit Emotion":"","Notes":"The trade is loss but no problem in the setup"},
+            {Week:"",Date:"01/06/2026",Pair:"GBPUSD",Setup:"LIQUIDITY",Direction:"UP","Time Frame":"15",Lot:"0.02",Status:"","Entry Setup":"","Entry Emotion":"Good","Exit Emotion":"","Notes":"Incorrect execution."},
+            {Week:"",Date:"01/06/2026",Pair:"EURUSD",Setup:"LIQUIDITY",Direction:"UP","Time Frame":"4H",Lot:"0.01",Status:"","Entry Setup":"A+","Entry Emotion":"Feeling well during execution.","Exit Emotion":"Doing good and not plan for revenge.","Notes":""},
+            {Week:"",Date:"03/06/2026",Pair:"NZDUSD",Setup:"LIQUIDITY",Direction:"UP","Time Frame":"4H",Lot:"0.01",Status:"","Entry Setup":"A","Entry Emotion":"Good execution","Exit Emotion":"Doing good and not plan for revenge.","Notes":"You should not check the Tradingview always because it makes you pressure."},
+            {Week:"",Date:"06/06/2026",Pair:"NZDCAD",Setup:"LIQUIDITY",Direction:"UP","Time Frame":"4H",Lot:"0.01",Status:"","Entry Setup":"A","Entry Emotion":"Good execution","Exit Emotion":"Doing good and not plan for revenge.","Notes":""},
+            {Week:"Week 2",Date:"10/06/2026",Pair:"GBPJPY",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.01",Status:"Closed","Entry Setup":"A+","Entry Emotion":"Good execution but not feeling well due to wanting to sleep","Exit Emotion":"Early Exit, need to increase lot size.","Notes":""},
+            {Week:"Week 3",Date:"16/06/2026",Pair:"EURJPY",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.01",Status:"Closed","Entry Setup":"A","Entry Emotion":"Excited during execution.","Exit Emotion":"Stop loss","Notes":""},
+            {Week:"",Date:"16/06/2026",Pair:"NZDJPY",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.02",Status:"Closed","Entry Setup":"A+","Entry Emotion":"Excited during execution.","Exit Emotion":"Early Exit, need to increase lot size.","Notes":""},
+            {Week:"",Date:"16/06/2026",Pair:"EURUSD",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.01",Status:"Closed","Entry Setup":"A","Entry Emotion":"Not Good but i need to trade due to fit on my System.","Exit Emotion":"Early Exit, need to increase lot size.","Notes":""},
+            {Week:"Week 4",Date:"10/06/2026",Pair:"GBPJPY",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.02",Status:"Closed","Entry Setup":"A+","Entry Emotion":"Excited to increase my lot size","Exit Emotion":"calm and no emotion","Notes":""},
+            {Week:"",Date:"16/06/2026",Pair:"EURUSD",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.02",Status:"Closed","Entry Setup":"A","Entry Emotion":"Excited to increase my lot size","Exit Emotion":"calm and no emotion","Notes":""},
+            {Week:"",Date:"22/06/2026",Pair:"GBPCAD",Setup:"LIQUIDITY",Direction:"DOWN","Time Frame":"4H",Lot:"0.03",Status:"Closed","Entry Setup":"A","Entry Emotion":"Good","Exit Emotion":"calm and no emotion","Notes":""}
+        ];
+        saveData();
+        showView();
+        showToast('Sample data loaded', 'success');
+    }
+
+    // ==================== RENDERING ====================
+    function renderTable() {
+        const tbody = document.getElementById('tradesBody');
+        tbody.innerHTML = '';
+        trades.forEach((t, i) => {
+            const isWeek = t.Week && t.Week.trim();
+            const tr = document.createElement('tr');
+            if (isWeek) tr.className = 'week-row';
+            tr.dataset.id = i;
+
+            const dirBadge = t.Direction === 'UP' ? '<span class="badge badge-up">UP</span>'
+                           : t.Direction === 'DOWN' ? '<span class="badge badge-down">DOWN</span>'
+                           : (t.Direction || '');
+            const statusBadge = t.Status === 'Closed' ? '<span class="badge badge-closed">Closed</span>'
+                              : '<span class="badge badge-open">Open</span>';
+            const grade = (t['Entry Setup'] && t['Entry Setup'] !== '--') ? `<span class="badge badge-a">${t['Entry Setup']}</span>` : '';
+            const tf = t['Time Frame'] ? `<span class="badge badge-tf">${t['Time Frame']}</span>` : '';
+
+            tr.innerHTML = `
+                <td>${t.Week || ''}</td>
+                <td>${t.Date || ''}</td>
+                <td class="pair-cell">${t.Pair || ''}</td>
+                <td>${t.Setup || ''}</td>
+                <td>${dirBadge}</td>
+                <td>${tf}</td>
+                <td>${t.Lot || ''}</td>
+                <td>${statusBadge}</td>
+                <td>${grade}</td>
+                <td class="notes-cell">${t['Entry Emotion'] || ''}</td>
+                <td class="notes-cell">${t['Exit Emotion'] || ''}</td>
+                <td class="notes-cell">${t.Notes || ''}</td>
+                <td>
+                    <div class="actions-cell">
+                        <button class="btn btn-sm" onclick="editTrade(${i})">Edit</button>
+                        <button class="btn btn-sm btn-danger" onclick="deleteTrade(${i})">Del</button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function updateStats() {
+        const total = trades.length;
+        const closed = trades.filter(t => (t.Status || '').toLowerCase() === 'closed').length;
+        const open = total - closed;
+
+        const pairs = {};
+        trades.forEach(t => { const p = t.Pair; if (p) pairs[p] = (pairs[p]||0) + 1; });
+        const topPair = Object.entries(pairs).sort((a,b) => b[1]-a[1])[0];
+
+        const grades = {};
+        trades.forEach(t => { const g = (t['Entry Setup']||'').trim(); if (g && g !== '--') grades[g] = (grades[g]||0) + 1; });
+        const topGrade = Object.entries(grades).sort((a,b) => b[1]-a[1])[0];
+
+        document.getElementById('statsRow').innerHTML = `
+            <div class="stat-card accent">
+                <div class="label">Total Trades</div>
+                <div class="value">${total}</div>
+            </div>
+            <div class="stat-card green">
+                <div class="label">Closed</div>
+                <div class="value">${closed}</div>
+            </div>
+            <div class="stat-card blue">
+                <div class="label">Open</div>
+                <div class="value">${open}</div>
+            </div>
+            <div class="stat-card orange">
+                <div class="label">Most Traded</div>
+                <div class="value">${topPair ? topPair[0] : '-'}</div>
+                <div class="sub">${topPair ? topPair[1]+' trades' : ''}</div>
+            </div>
+            <div class="stat-card red">
+                <div class="label">Top Grade</div>
+                <div class="value">${topGrade ? topGrade[0] : '-'}</div>
+                <div class="sub">${topGrade ? topGrade[1]+' times' : 'Entry Setup'}</div>
+            </div>
+        `;
+    }
+
+    function updateFilters() {
+        const pairs = [...new Set(trades.map(t => t.Pair).filter(Boolean))].sort();
+        const weeks = [...new Set(trades.map(t => t.Week).filter(Boolean))].sort();
+        const setups = [...new Set(trades.map(t => t.Setup).filter(Boolean))].sort();
+
+        const pairSel = document.getElementById('filterPair');
+        const weekSel = document.getElementById('filterWeek');
+        const setupSel = document.getElementById('filterSetup');
+        const pairDL = document.getElementById('pairList');
+        const setupDL = document.getElementById('setupList');
+
+        // Preserve current selection
+        const curPair = pairSel.value, curWeek = weekSel.value, curSetup = setupSel.value;
+
+        pairSel.innerHTML = '<option value="">All Pairs</option>' + pairs.map(p => `<option value="${p}"${p===curPair?' selected':''}>${p}</option>`).join('');
+        weekSel.innerHTML = '<option value="">All Weeks</option>' + weeks.map(w => `<option value="${w}"${w===curWeek?' selected':''}>${w}</option>`).join('');
+        setupSel.innerHTML = '<option value="">All Setups</option>' + setups.map(s => `<option value="${s}"${s===curSetup?' selected':''}>${s}</option>`).join('');
+
+        pairDL.innerHTML = pairs.map(p => `<option value="${p}">`).join('');
+        setupDL.innerHTML = setups.map(s => `<option value="${s}">`).join('');
+    }
+
+    // ==================== FILTERS ====================
+    function applyFilters() {
+        const pair = document.getElementById('filterPair').value;
+        const dir = document.getElementById('filterDirection').value;
+        const status = document.getElementById('filterStatus').value;
+        const week = document.getElementById('filterWeek').value;
+        const setup = document.getElementById('filterSetup').value;
+        const search = document.getElementById('searchBox').value.toLowerCase();
+        let visible = 0;
+
+        document.querySelectorAll('#tradesBody tr').forEach(row => {
+            const id = parseInt(row.dataset.id);
+            const t = trades[id];
+            if (!t) return;
+
+            let show = true;
+            if (pair && t.Pair !== pair) show = false;
+            if (dir && t.Direction !== dir) show = false;
+            if (status === 'open' && t.Status === 'Closed') show = false;
+            else if (status && status !== 'open' && t.Status !== status) show = false;
+            if (week && t.Week !== week) show = false;
+            if (setup && t.Setup !== setup) show = false;
+            if (search) {
+                const text = Object.values(t).join(' ').toLowerCase();
+                if (!text.includes(search)) show = false;
+            }
+            row.style.display = show ? '' : 'none';
+            if (show) visible++;
+        });
+
+        const total = trades.length;
+        document.getElementById('filterCount').textContent =
+            visible === total ? `${total} trades` : `${visible} of ${total} trades`;
+
+        document.getElementById('emptyState').style.display = visible === 0 ? 'block' : 'none';
+    }
+
+    // ==================== MODAL / CRUD ====================
+    function openModal(trade) {
+        document.getElementById('tradeModal').classList.add('active');
+        if (trade) {
+            document.getElementById('modalTitle').textContent = 'Edit Trade';
+            document.getElementById('editId').value = trade._id;
+            document.getElementById('fWeek').value = trade.Week || '';
+            document.getElementById('fDate').value = trade.Date || '';
+            document.getElementById('fPair').value = trade.Pair || '';
+            document.getElementById('fSetup').value = trade.Setup || '';
+            document.getElementById('fDirection').value = trade.Direction || 'UP';
+            document.getElementById('fTimeFrame').value = trade['Time Frame'] || '';
+            document.getElementById('fLot').value = trade.Lot || '';
+            document.getElementById('fStatus').value = trade.Status || '';
+            document.getElementById('fEntrySetup').value = trade['Entry Setup'] || '';
+            document.getElementById('fEntryEmotion').value = trade['Entry Emotion'] || '';
+            document.getElementById('fExitEmotion').value = trade['Exit Emotion'] || '';
+            document.getElementById('fNotes').value = trade.Notes || '';
+        } else {
+            document.getElementById('modalTitle').textContent = 'New Trade';
+            document.getElementById('tradeForm').reset();
+            document.getElementById('editId').value = '';
+        }
+    }
+
+    function closeModal() {
+        document.getElementById('tradeModal').classList.remove('active');
+    }
+
+    function editTrade(id) {
+        const t = trades[id];
+        if (t) {
+            t._id = id;
+            openModal(t);
+        }
+    }
+
+    function saveTrade(e) {
+        e.preventDefault();
+        const id = document.getElementById('editId').value;
+        const data = {
+            Week: document.getElementById('fWeek').value,
+            Date: document.getElementById('fDate').value,
+            Pair: document.getElementById('fPair').value.toUpperCase(),
+            Setup: document.getElementById('fSetup').value.toUpperCase(),
+            Direction: document.getElementById('fDirection').value,
+            'Time Frame': document.getElementById('fTimeFrame').value,
+            Lot: document.getElementById('fLot').value,
+            Status: document.getElementById('fStatus').value,
+            'Entry Setup': document.getElementById('fEntrySetup').value,
+            'Entry Emotion': document.getElementById('fEntryEmotion').value,
+            'Exit Emotion': document.getElementById('fExitEmotion').value,
+            Notes: document.getElementById('fNotes').value
+        };
+
+        if (id !== '') {
+            trades[parseInt(id)] = data;
+            showToast('Trade updated', 'success');
+        } else {
+            trades.push(data);
+            showToast('Trade added', 'success');
+        }
+        saveData();
+        closeModal();
+        showView();
+        applyFilters();
+    }
+
+    function deleteTrade(id) {
+        if (!confirm('Delete this trade?')) return;
+        trades.splice(id, 1);
+        saveData();
+        showView();
+        applyFilters();
+        showToast('Trade deleted', 'error');
+    }
+
+    // ==================== TOAST ====================
+    function showToast(msg, type = 'success') {
+        const t = document.getElementById('toast');
+        t.textContent = msg;
+        t.className = 'toast ' + type + ' show';
+        setTimeout(() => { t.classList.remove('show'); }, 2500);
+    }
+
+    // ==================== GLOBAL ERROR HANDLER ====================
+    window.onerror = function(msg, url, line) {
+        showToast('JS Error: ' + msg + ' (line ' + line + ')', 'error');
+        console.error('JS Error:', msg, url, line);
+    };
+
+    // ==================== EVENTS ====================
+    document.getElementById('tradeModal').addEventListener('click', function(e) {
+        if (e.target === this) closeModal();
+    });
+    document.addEventListener('DOMContentLoaded', function() {
+        var excelModal = document.getElementById('excelOnlineModal');
+        if (excelModal) {
+            excelModal.addEventListener('click', function(e) {
+                if (e.target === this) closeExcelOnlineModal();
+            });
+        }
+    });
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeModal();
+            closeExcelOnlineModal();
+        }
+    });
+
+    // ==================== INIT ====================
+    try {
+        loadData();
+        showView();
+        initMSAL();
+    } catch (err) {
+        console.error('Init error:', err);
+        // Ensure buttons still work even if init fails
+        document.getElementById('importBanner').style.display = 'block';
+    }
+
+    // ==================== MICROSOFT GRAPH API (Excel Online) ====================
+    // IMPORTANT: Replace 'YOUR_CLIENT_ID' with your Azure AD App Registration Client ID
+    // See: https://learn.microsoft.com/en-us/azure/active-directory/develop/quickstart-register-app
+    const MSAL_CONFIG = {
+        auth: {
+            clientId: 'YOUR_CLIENT_ID', // <-- Replace with your Azure AD Client ID
+            authority: 'https://login.microsoftonline.com/consumers',
+            redirectUri: window.location.origin + window.location.pathname
+        },
+        cache: {
+            cacheLocation: 'localStorage',
+            storeAuthStateInCookie: false
+        }
+    };
+
+    const GRAPH_SCOPES = ['Files.ReadWrite', 'User.Read'];
+    const EXCEL_FILE_NAME = 'TradingJournal2026.xlsx';
+
+    function initMSAL() {
+        if (typeof msal === 'undefined') {
+            console.warn('MSAL library not loaded. Excel Online features disabled.');
+            return;
+        }
+        try {
+            msalInstance = new msal.PublicClientApplication(MSAL_CONFIG);
+            // Handle redirect promise
+            msalInstance.handleRedirectPromise().then(response => {
+                if (response) {
+                    currentUser = response.account;
+                    updateExcelOnlineUI(true);
+                    showToast('Signed in as ' + currentUser.name, 'success');
+                } else {
+                    // Check if already signed in
+                    const accounts = msalInstance.getAllAccounts();
+                    if (accounts.length > 0) {
+                        currentUser = accounts[0];
+                        updateExcelOnlineUI(true);
+                    }
+                }
+            }).catch(err => {
+                console.error('MSAL redirect error:', err);
+            });
+        } catch (err) {
+            console.error('MSAL init error:', err);
+        }
+    }
+
+    function toggleExcelOnline() {
+        if (!msalInstance) {
+            showToast('Excel Online not available. MSAL library not loaded.', 'error');
+            return;
+        }
+        if (currentUser) {
+            // Show sync modal
+            showExcelOnlineModal();
+        } else {
+            signInExcelOnline();
+        }
+    }
+
+    function showExcelOnlineModal() {
+        const modal = document.getElementById('excelOnlineModal');
+        const status = document.getElementById('excelOnlineStatus');
+        if (currentUser) {
+            status.innerHTML = '<p style="color: var(--green); font-size: 13px;">Connected as: <strong>' + currentUser.name + '</strong></p>';
+        } else {
+            status.innerHTML = '<p style="color: var(--text2); font-size: 13px;">Status: Not connected</p>';
+        }
+        modal.classList.add('active');
+    }
+
+    function closeExcelOnlineModal() {
+        document.getElementById('excelOnlineModal').classList.remove('active');
+    }
+
+    function signInExcelOnline() {
+        if (!msalInstance) return;
+        msalInstance.loginRedirect({
+            scopes: GRAPH_SCOPES,
+            prompt: 'select_account'
+        });
+    }
+
+    function signOutExcelOnline() {
+        if (!msalInstance) return;
+        msalInstance.logoutRedirect({
+            postLogoutRedirectUri: window.location.origin + window.location.pathname
+        });
+        currentUser = null;
+        excelFileId = null;
+        updateExcelOnlineUI(false);
+        showToast('Signed out', 'info');
+    }
+
+    function updateExcelOnlineUI(signedIn) {
+        const label = document.getElementById('excelOnlineLabel');
+        const btn = document.getElementById('btnExcelOnline');
+        if (signedIn) {
+            label.textContent = 'Excel Online';
+            btn.style.borderColor = 'var(--green)';
+            btn.style.color = 'var(--green)';
+        } else {
+            label.textContent = 'Connect Excel';
+            btn.style.borderColor = '';
+            btn.style.color = '';
+        }
+    }
+
+    async function getAccessToken() {
+        if (!msalInstance || !currentUser) return null;
+        try {
+            const response = await msalInstance.acquireTokenSilent({
+                scopes: GRAPH_SCOPES,
+                account: currentUser
+            });
+            return response.accessToken;
+        } catch (err) {
+            // Silent token acquisition failed, try popup
+            try {
+                const response = await msalInstance.acquireTokenPopup({
+                    scopes: GRAPH_SCOPES
+                });
+                return response.accessToken;
+            } catch (popupErr) {
+                console.error('Token acquisition failed:', popupErr);
+                showToast('Authentication failed. Please sign in again.', 'error');
+                return null;
+            }
+        }
+    }
+
+    async function graphFetch(url, options = {}) {
+        const token = await getAccessToken();
+        if (!token) {
+            showToast('Please sign in to Excel Online first.', 'error');
+            return null;
+        }
+        const headers = {
+            'Authorization': 'Bearer ' + token,
+            'Content-Type': 'application/json',
+            ...options.headers
+        };
+        try {
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error?.message || 'Graph API error: ' + response.status);
+            }
+            return response;
+        } catch (err) {
+            console.error('Graph fetch error:', err);
+            showToast('Excel Online error: ' + err.message, 'error');
+            return null;
+        }
+    }
+
+    async function findOrCreateExcelFile() {
+        // Search for the file in OneDrive root
+        const searchUrl = "https://graph.microsoft.com/v1.0/me/drive/root/search(q='" + EXCEL_FILE_NAME + "')";
+        const response = await graphFetch(searchUrl);
+        if (!response) return null;
+        const data = await response.json();
+        const files = data.value || [];
+        const existing = files.find(f => f.name === EXCEL_FILE_NAME);
+        if (existing) {
+            excelFileId = existing.id;
+            return existing;
+        }
+        // Create new file
+        const createUrl = 'https://graph.microsoft.com/v1.0/me/drive/root:/' + EXCEL_FILE_NAME + ':/content';
+        const createResponse = await graphFetch(createUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                '@microsoft.graph.conflictBehavior': 'rename',
+                file: {}
+            })
+        });
+        if (!createResponse) return null;
+        const newFile = await createResponse.json();
+        excelFileId = newFile.id;
+        // Initialize the worksheet with headers
+        await initializeExcelWorkbook();
+        return newFile;
+    }
+
+    async function initializeExcelWorkbook() {
+        if (!excelFileId) return;
+        const sessionUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/createSession`;
+        const sessionResponse = await graphFetch(sessionUrl, {
+            method: 'POST',
+            body: JSON.stringify({ persistChanges: true })
+        });
+        if (!sessionResponse) return;
+        const session = await sessionResponse.json();
+        const sessionId = session.id;
+        // Add a "Trades" worksheet if it doesn't exist
+        const addSheetUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/worksheets/add`;
+        await graphFetch(addSheetUrl, {
+            method: 'POST',
+            body: JSON.stringify({ name: 'Trades' })
+        });
+        // Close session
+        const closeUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/closeSession`;
+        await graphFetch(closeUrl, { method: 'POST' });
+    }
+
+    async function syncToExcelOnline() {
+        if (!currentUser) {
+            showToast('Please sign in to Excel Online first.', 'error');
+            return;
+        }
+        if (trades.length === 0) {
+            showToast('No trades to sync.', 'error');
+            return;
+        }
+        showToast('Syncing to Excel Online...', 'info');
+        const file = await findOrCreateExcelFile();
+        if (!file) {
+            showToast('Failed to access Excel file.', 'error');
+            return;
+        }
+        // Create a workbook session
+        const sessionUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/createSession`;
+        const sessionResponse = await graphFetch(sessionUrl, {
+            method: 'POST',
+            body: JSON.stringify({ persistChanges: true })
+        });
+        if (!sessionResponse) return;
+        const session = await sessionResponse.json();
+        const sessionId = session.id;
+        // Clear existing data and write new data
+        const rangeUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/worksheets('Trades')/usedRange`;
+        await graphFetch(rangeUrl, { method: 'DELETE' });
+        // Build the data array (headers + rows)
+        const headers = FIELDS;
+        const rows = trades.map(t => headers.map(h => t[h] || ''));
+        const allData = [headers, ...rows];
+        // Write data to range
+        const writeUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/worksheets('Trades')/range(address='A1')`;
+        await graphFetch(writeUrl, {
+            method: 'PATCH',
+            body: JSON.stringify({ values: allData })
+        });
+        // Close session
+        const closeUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/closeSession`;
+        await graphFetch(closeUrl, { method: 'POST' });
+        showToast('Synced ' + trades.length + ' trades to Excel Online!', 'success');
+    }
+
+    async function syncFromExcelOnline() {
+        if (!currentUser) {
+            showToast('Please sign in to Excel Online first.', 'error');
+            return;
+        }
+        showToast('Loading from Excel Online...', 'info');
+        const file = await findOrCreateExcelFile();
+        if (!file) {
+            showToast('Failed to access Excel file.', 'error');
+            return;
+        }
+        // Create a workbook session
+        const sessionUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/createSession`;
+        const sessionResponse = await graphFetch(sessionUrl, {
+            method: 'POST',
+            body: JSON.stringify({ persistChanges: true })
+        });
+        if (!sessionResponse) return;
+        const session = await sessionResponse.json();
+        // Read data from the Trades worksheet
+        const rangeUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/worksheets('Trades')/usedRange`;
+        const rangeResponse = await graphFetch(rangeUrl);
+        if (!rangeResponse) return;
+        const rangeData = await rangeResponse.json();
+        const values = rangeData.values || [];
+        if (values.length < 2) {
+            showToast('No data found in Excel file.', 'error');
+            return;
+        }
+        // Parse the data (first row is headers)
+        const headers = values[0].map(h => String(h || '').trim());
+        trades = [];
+        for (let i = 1; i < values.length; i++) {
+            const row = values[i];
+            const trade = {};
+            headers.forEach((h, idx) => {
+                trade[h] = String(row[idx] || '').trim();
+            });
+            // Skip empty rows
+            if (trade.Date || trade.Pair) {
+                trades.push(trade);
+            }
+        }
+        // Close session
+        const closeUrl = `https://graph.microsoft.com/v1.0/me/drive/items/${excelFileId}/workbook/closeSession`;
+        await graphFetch(closeUrl, { method: 'POST' });
+        saveData();
+        showView();
+        applyFilters();
+        showToast('Loaded ' + trades.length + ' trades from Excel Online!', 'success');
+    }
+</script>
+
+<!-- Excel Online Modal -->
+<div class="modal-overlay" id="excelOnlineModal">
+    <div class="modal">
+        <h2>Excel Online Sync</h2>
+        <p style="color: var(--text2); font-size: 13px; margin-bottom: 16px;">
+            Connect your Microsoft account to sync trades with Excel Online on OneDrive.
+        </p>
+        <div id="excelOnlineStatus" style="margin-bottom: 16px;">
+            <p style="color: var(--text2); font-size: 13px;">Status: Not connected</p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn" onclick="closeExcelOnlineModal()">Close</button>
+            <button type="button" class="btn btn-green" onclick="syncToExcelOnline()">Sync to Excel</button>
+            <button type="button" class="btn btn-primary" onclick="syncFromExcelOnline()">Load from Excel</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

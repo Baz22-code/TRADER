@@ -1,0 +1,14 @@
+(index):957 JS Error: Uncaught TypeError: Cannot read properties of null (reading 'addEventListener') https://trader-bazel.vercel.app/ 964
+window.onerror @ (index):957
+(index):964 Uncaught TypeError: Cannot read properties of null (reading 'addEventListener')
+    at (index):964:48
+(index):957 JS Error: Uncaught ReferenceError: Cannot access 'msalInstance' before initialization https://trader-bazel.vercel.app/ 1036
+window.onerror @ (index):957
+(index):1036 Uncaught ReferenceError: Cannot access 'msalInstance' before initialization
+    at toggleExcelOnline ((index):1036:9)
+    at HTMLButtonElement.onclick ((index):351:121)
+(index):957 JS Error: Uncaught ReferenceError: Cannot access 'msalInstance' before initialization https://trader-bazel.vercel.app/ 1036
+window.onerror @ (index):957
+(index):1036 Uncaught ReferenceError: Cannot access 'msalInstance' before initialization
+    at toggleExcelOnline ((index):1036:9)
+    at HTMLButtonElement.onclick ((index):351:121)
